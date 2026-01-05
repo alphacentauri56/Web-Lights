@@ -17,6 +17,21 @@
   <div id="colourPicker"></div>
   <button id="offButton">Off</button>
 
+  <!-- Animation Controls -->
+  <div id="controls" style="margin-top:18px;">
+    <input id="color-picker" type="color" value="#ff0000">
+    <button id="set-color">Set colour</button>
+
+    <div style="margin-top:8px">
+      <label for="speed">Speed</label>
+      <input id="speed" type="number" min="0.001" step="0.01" value="0.02">
+      <button id="rainbow-btn">Start Rainbow</button>
+      <button id="stop-btn">Stop Animation</button>
+    </div>
+
+    <div id="status" style="margin-top:8px; font-size:0.9em; color:#333"></div>
+  </div>
+
   <script>
     const offButton = document.getElementById('offButton');
 
@@ -64,6 +79,88 @@
     offButton.addEventListener('click', () => {
       sendColour('#000000');
     });
+
+    // --- Additional UI handlers for animations ---
+    // helper: POST JSON and return parsed JSON
+    async function postJson(path, data) {
+      const res = await fetch(path, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data || {})
+      });
+      if (!res.ok) {
+        const txt = await res.text();
+        throw new Error('Server error: ' + res.status + ' ' + txt);
+      }
+      return res.json();
+    }
+
+    // wire animation UI
+    const colorPickerInput = document.getElementById('color-picker');
+    const setColorBtn = document.getElementById('set-color');
+    const rainbowBtn = document.getElementById('rainbow-btn');
+    const stopBtn = document.getElementById('stop-btn');
+    const speedInput = document.getElementById('speed');
+    const statusEl = document.getElementById('status');
+
+    function showStatus(msg, err=false) {
+      statusEl.textContent = msg;
+      statusEl.style.color = err ? 'crimson' : '#333';
+    }
+
+    setColorBtn.addEventListener('click', async () => {
+      const hex = colorPickerInput.value;
+      showStatus('Sending color...');
+      try {
+        const res = await postJson('/colours', { colourdata: hex });
+        showStatus(res.message || 'Colour set');
+      } catch (e) {
+        showStatus(e.message, true);
+        console.error(e);
+      }
+    });
+
+    rainbowBtn.addEventListener('click', async () => {
+      const speed = parseFloat(speedInput.value) || 0.02;
+      showStatus('Starting rainbow animation...');
+      try {
+        const res = await postJson('/animate/start', { name: 'rainbow', speed: speed });
+        showStatus(res.message || 'Animation started');
+      } catch (e) {
+        showStatus(e.message, true);
+        console.error(e);
+      }
+    });
+
+    stopBtn.addEventListener('click', async () => {
+      showStatus('Stopping animation...');
+      try {
+        const res = await postJson('/animate/stop', {});
+        showStatus(res.message || 'Stopped');
+      } catch (e) {
+        showStatus(e.message, true);
+        console.error(e);
+      }
+    });
+
+    // Optional: poll status endpoint
+    async function pollStatus() {
+      try {
+        const res = await fetch('/status');
+        if (res.ok) {
+          const json = await res.json();
+          if (json.running) {
+            statusEl.textContent = 'Animation running: ' + (json.name || 'unknown');
+            statusEl.style.color = '#080';
+          }
+        }
+      } catch (e) {
+        // ignore
+      } finally {
+        setTimeout(pollStatus, 3000);
+      }
+    }
+    pollStatus();
   </script>
 </body>
 </html>
