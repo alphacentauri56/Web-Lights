@@ -10,7 +10,7 @@ app = Flask(__name__)
 
 # Configuration
 LED_COUNT = 274
-LED_BRIGHTNESS = float(os.environ.get('LED_BRIGHTNESS', 0.25))
+LED_BRIGHTNESS = float(os.environ.get('LED_BRIGHTNESS', 0.5))
 LED_ORDER = None  # led_driver will handle ordering if using real hardware
 
 # Create a pixel driver (wraps real NeoPixel or a fake driver for development)
