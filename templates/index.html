@@ -19,21 +19,14 @@
 
   <!-- Animation Controls -->
   <div id="controls" style="margin-top:18px;">
-    <div style="margin-bottom:8px">
+    <input id="color-picker" type="color" value="#ff0000">
+    <button id="set-color">Set colour</button>
+
+    <div style="margin-top:8px">
       <label for="speed">Speed</label>
       <input id="speed" type="number" min="0.001" step="0.01" value="0.02">
-      <button id="start-btn">Start</button>
-      <button id="stop-btn">Stop</button>
-    </div>
-
-    <div style="margin-bottom:8px">
-      <label for="anim-select">Animation</label>
-      <select id="anim-select">
-        <option value="rainbow">Rainbow</option>
-        <option value="breathing">Breathing</option>
-    <option value="gradient">Gradient (start colour -> white)</option>
-    <option value="colours">Colours.py gradient</option>
-      </select>
+      <button id="rainbow-btn">Start Rainbow</button>
+      <button id="stop-btn">Stop Animation</button>
     </div>
 
     <div id="status" style="margin-top:8px; font-size:0.9em; color:#333"></div>
@@ -102,29 +95,36 @@
       return res.json();
     }
 
-  // wire animation UI
-  const startBtn = document.getElementById('start-btn');
-  const stopBtn = document.getElementById('stop-btn');
-  const animSelect = document.getElementById('anim-select');
-  const speedInput = document.getElementById('speed');
-  const statusEl = document.getElementById('status');
+    // wire animation UI
+    const colorPickerInput = document.getElementById('color-picker');
+    const setColorBtn = document.getElementById('set-color');
+    const rainbowBtn = document.getElementById('rainbow-btn');
+    const stopBtn = document.getElementById('stop-btn');
+    const speedInput = document.getElementById('speed');
+    const statusEl = document.getElementById('status');
 
     function showStatus(msg, err=false) {
       statusEl.textContent = msg;
       statusEl.style.color = err ? 'crimson' : '#333';
     }
 
-    startBtn.addEventListener('click', async () => {
-      const name = animSelect.value;
-      const speed = parseFloat(speedInput.value) || 0.02;
-      // current color from Iro.js picker
-      const currentColor = colorPicker.color.hexString;
-      showStatus('Starting ' + name + '...');
+    setColorBtn.addEventListener('click', async () => {
+      const hex = colorPickerInput.value;
+      showStatus('Sending color...');
       try {
-        let payload = { name: name, speed: speed };
-        if (name === 'breathing') payload.color = currentColor;
-        if (name === 'gradient') payload.start = currentColor; // end defaults to white on server
-        const res = await postJson('/animate/start', payload);
+        const res = await postJson('/colours', { colourdata: hex });
+        showStatus(res.message || 'Colour set');
+      } catch (e) {
+        showStatus(e.message, true);
+        console.error(e);
+      }
+    });
+
+    rainbowBtn.addEventListener('click', async () => {
+      const speed = parseFloat(speedInput.value) || 0.02;
+      showStatus('Starting rainbow animation...');
+      try {
+        const res = await postJson('/animate/start', { name: 'rainbow', speed: speed });
         showStatus(res.message || 'Animation started');
       } catch (e) {
         showStatus(e.message, true);
